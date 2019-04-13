@@ -18,6 +18,7 @@ import axios from 'axios';
 import {PhotoCamera,Save} from '@material-ui/icons/';
 import AvatarEditor from 'react-avatar-editor'
 import url from '../../constantes'
+import {Link} from 'react-router-dom'
 const styles ={
     cardAction:{
         marginBottom:40
@@ -43,7 +44,7 @@ const styles ={
         height: 200,
       },
 }
-class Register extends Component{
+class Singup extends Component{
     constructor(){
         super()
         this.state={
@@ -86,7 +87,7 @@ class Register extends Component{
                  
              }).finally(()=>{this.setState({open:true})})
     }
-    posterChange=(e)=>{
+    avatarChange=(e)=>{
         this.setState({avatarSelect:false})
         console.log(e.target.files)
         let file=e.target.files
@@ -121,14 +122,14 @@ class Register extends Component{
     render(){
         const { classes } = this.props;
         return(
-            <div>
+            <div className='mt mb'>
             <Grid
             
             container
             direction="row"
             justify="center"
             >
-                <Grid md={5} xs={10} className='mt'>
+                <Grid item md={4} xs={10}>
                 <Card>
                     <CardHeader
                     title={
@@ -142,19 +143,20 @@ class Register extends Component{
                     :<AvatarEditor
                         ref={this.setEditorRef}
                         image={this.state.avatar}
-                        width={200}
                         height={200}
                         border={50}
-                        color={[255, 255, 255, 0.6]} // RGBA
-                        scale={1}
+                        color={[56, 54, 54, 1]} // RGBA
+                        scale={1.3}
+                        
+                        style={{ borderRadius:'50%' }}
                         rotate={0}
                         borderRadius={500}
                         
                     />}
-                    <Grid xs={8}  container
+                    <Grid item xs={8}  container
                           justify="space-between"
                           direction="row">
-                    <input accept="image/*" onChange={(e)=>this.posterChange(e)} className={classes.input} id="icon-button-file" type="file" />
+                    <input accept="image/*" onChange={(e)=>this.avatarChange(e)} className={classes.input} id="icon-button-file" type="file" />
                     <label htmlFor="icon-button-file">
                         <IconButton color="primary" className={classes.button} component="span">
                         <PhotoCamera />
@@ -203,11 +205,14 @@ class Register extends Component{
                     />
                     </CardContent>
                     <CardActions  style={{marginBottom: 10}}>
-                        <Grid container justify = "center">
-                            <Grid xs={10} container>
+                        <Grid container spacing={8} justify = "center">
+                            <Grid item xs={10} container>
                             <Button onClick={this.register} fullWidth variant="contained" color="primary">Registrarte</Button>
                             </Grid>
-                            
+                            <Grid item xs={10} container justify = "center">
+                                <Typography variant="caption">Ya Tienes Cuenta? <Link to='/login'> Login</Link>
+                                </Typography >
+                            </Grid>
                         </Grid>
                     </CardActions>
                 </Card>
@@ -219,8 +224,8 @@ class Register extends Component{
         )
     }
 }
-Register.propTypes = {
+Singup.propTypes = {
     classes: PropTypes.object.isRequired,
   };
   
-export default withStyles(styles)(Register);
+export default withStyles(styles)(Singup);

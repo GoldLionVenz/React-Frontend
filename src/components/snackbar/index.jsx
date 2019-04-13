@@ -27,8 +27,8 @@ class Snack extends Component{
         return(
             <Snackbar
           anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'center',
+            vertical: 'top',
+            horizontal: 'right',
           }}
           open={this.props.open}
           autoHideDuration={6000}
@@ -39,12 +39,12 @@ class Snack extends Component{
           message={<span id="message-id">{this.props.message}</span>}
           action={[
             <Button key="undo" color="secondary" size="small" onClick={this.handleClose}>
-              UNDO
+              Close
             </Button>,
             <IconButton
               key="close"
               aria-label="Close"
-              color="inherit"
+              color="primary"
               className={classes.close}
               onClick={this.handleClose}
             >

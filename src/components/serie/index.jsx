@@ -1,11 +1,11 @@
 import React, {Component} from 'react'
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import {Grid, Typography,AppBar, Tabs, Tab,List,ListItem,ListItemSecondaryAction,ListItemText,IconButton} from '@material-ui/core'
-import CommentIcon from '@material-ui/icons/Comment';
+import {Grid, Typography,AppBar, Tabs, Tab,List,ListItem} from '@material-ui/core'
 import { Link } from "react-router-dom";
 import url from '../../constantes'
-import axios from 'axios'
+import ButtonSpinner from '../buttonspinner/'
+import Snack from '../snackbar/'
 const styles ={
     root: {
         flexGrow: 1,
@@ -25,38 +25,37 @@ class Serie extends Component{
         seasons:[],
         value: 0,
         background:'',
-        poster:''
+        poster:'',
+        message:'',
+        loading:false,
+        toast:false
     };
     componentWillMount(){
-        axios.get(`${url.base}title/${this.props.params.id}`,{
-            headers:{
-                'Content-Type': 'application/json',
-                'X-Requested-With':'XMLHttpRequest'   
-            }})
-            .then(data=>{
-                console.log(data)
-                this.setState({
-                    data:data.data,
-                    seasons:data.data.seasons,
-                    value:data.data.seasons.length-1,
-                    poster:data.data.lastPoster,
-                    background:data.data.lastBanner,
-                })
-                
-                //console.log(data.data)
-            })       
-        //console.log(this.props.params.id)
+        this.getTitle()
     }
-    poster(){
-        let poster=this.state.data.poster
-        this.state.seasons.forEach(season=>{
-           if(season.poster!==null){
-               poster= season.poster
-               
-           }
-           
+    getTitle=async()=>{
+        const req=await fetch(`${url.base}title/${this.props.params.id}`)
+        const resp=await req.json()
+        this.setState({seasons:resp.data.seasons,data:resp.data,value:resp.data.seasons.length-1})
+        if(resp.lastSeason){
+            this.setState({background:resp.lastSeason.banner,poster:resp.lastSeason.poster})
+        }else{
+            this.setState({poster:resp.data.poster})
+        }
+    }
+    suscribe=async()=>{
+        this.setState({loading:true})
+        const peticion=await fetch(`${url.base}suscribe`,{
+            method:'POST',
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+                'Content-Type':'application/x-www-form-urlencoded'
+            },
+            body:`serie_id=${this.props.params.id}`
         })
-        return poster
+        const resp=await peticion.json()
+        this.setState({loading:false,toast:true,message:resp.message})
+        
     }
     handleChange = (event, value) => {
         this.setState({ value });
@@ -65,101 +64,70 @@ class Serie extends Component{
         this.setState({background:value,poster:poster})
     }
     render(){
-        const { classes } = this.props;
         
         let tabs=this.state.seasons.map(season=>{
-            
             return(
-                <Tab onClick={this.setBackground.bind(this,season.banner,season.poster)} label={`Season ${season.number_season}`} />
+                <Tab key={season.id} onClick={this.setBackground.bind(this,season.banner,season.poster)} label={`Season ${season.number_season}`} />
             )
         })
-        
+        let tabsItems=this.state.seasons.map((season,index)=>{
+            let episodes= season.episodes.map((episode,index)=>{
+                
+                return (
+                    <ListItem key={index} button component={Link} to={`/watch/${episode.id}`}>
+                        <Typography>{episode.title}</Typography>
+                    </ListItem>
+                )
+            })
+            return (
+                this.state.value === index && 
+                <TabContainer key={index}>
+                    <div>
+                        <List component="nav">
+                            {episodes}
+                        </List>
+                    </div>
+                </TabContainer>
+            )
+            
+        })
         return(
-            //http://assets.viewers-guide.hbo.com/large5335b0c106762.jpg
-            //http://assets.viewers-guide.hbo.com/xlarge556f740a18004.jpg
-            //https://www.hbo.com/content/dam/hbodata/series/game-of-thrones/video-stills/season-02/20-inside-the-episode-866929-16-1920.jpg
-            //https://www.hbo.com/content/dam/hbodata/series/game-of-thrones/video-stills/season-02/got-female-trailer-1920.jpg
-            //https://www.hbo.com/content/dam/hbodata/series/game-of-thrones/episodes/1/1/winter-is-coming-04-1920.jpg/_jcr_content/renditions/cq5dam.web.1200.675.jpeg
             <Grid container direction="row" className='mt' justify="center">
+                <Snack message={this.state.message} open={this.state.toast} close={()=>this.setState({toast:false})}/>
                 <div className="header">
                     <div className="title-background" style={{backgroundImage:`url(${this.state.background})`}}></div>
                     <div className="top-vignette"></div>
                     <div className="bottom-vignette"></div>
                 </div>
-                <Grid xs={10} spacing={24} container className='relative'>
-                    <Grid item xs={3}>
+                <Grid item xs={10} spacing={24} container className='relative'>
+                    <Grid  item md={3} xs={12}>
                         <img className="poster" src={this.state.poster} alt=""/>
                     </Grid>
-                    <Grid item xs={7}>
+                    <Grid item md={7} xs={12}>
                         <Typography align="center" variant="h5" component="h3">
-                        {this.state.data.title}
+                            {this.state.data.title}
                         </Typography>
                         <Typography  component="p">
-                        {this.state.data.plot}
+                            {this.state.data.plot}
                         </Typography>
                         <Typography variant="h5" component="h3">
-                        IMBD Rating {this.state.data.imdbRating}
+                            IMBD Rating {this.state.data.imdbRating}
                         </Typography>
+                        <ButtonSpinner loading={this.state.loading} action={this.suscribe} text='Susbcribe'/>
                     </Grid>
                 </Grid>
-                <Grid xs={10} className="mt relative">
-                <AppBar position="static">
-                    <Tabs value={this.state.value} onChange={this.handleChange}>
-                        {tabs}
-                    </Tabs>
-                </AppBar>
-                {this.state.value === 0 && 
-                <TabContainer>
-                    <div>
-                    <List component="nav">
-                        <ListItem button component={Link} to='/login'>
-                            <ListItemText primary="Inbox" />
-                            <ListItemSecondaryAction>
-                            <IconButton aria-label="Comments">
-                                <CommentIcon />
-                            </IconButton>
-                            </ListItemSecondaryAction>
-                        </ListItem>
-                        <ListItem button>
-                            <ListItemText primary="Drafts" />
-                            <ListItemSecondaryAction>
-                            <IconButton color="primary" aria-label="Comments">
-                                <CommentIcon />
-                            </IconButton>
-                            </ListItemSecondaryAction>
-                        </ListItem>
-                    </List>
-                    </div>
-                </TabContainer>}
-                {this.state.value === 1 && 
-                    <TabContainer>
-                        <div>
-                        <List component="nav">
-                            <ListItem button>
-                                <ListItemText primary="Inbox" />
-                                <ListItemText primary="Imdb" />
-                            </ListItem>
-                            <ListItem button>
-                                <ListItemText primary="Drafts" />
-                                <ListItemText primary="Imdb" />
-                            </ListItem>
-                        </List>
-                        </div>
-                    </TabContainer>}
-                {this.state.value=== 2 && 
-                <TabContainer>
-                    <div>
-                    <List component="nav">
-                        <ListItem button>
-                            <ListItemText primary="Inbox" />
-                        </ListItem>
-                        <ListItem button>
-                            <ListItemText primary="Drafts" />
-                        </ListItem>
-                    </List>
-                    </div>
-                </TabContainer>}
+                {this.state.seasons.length>0?
+                <Grid item xs={10} className="mt relative">
+                    <AppBar position="static">
+                        <Tabs variant="scrollable" indicatorColor="secondary" textColor="inherit" scrollButtons="on" value={this.state.value} onChange={this.handleChange}>
+                            {tabs}
+                        </Tabs>
+                    </AppBar>
+                    {tabsItems}
                 </Grid>
+                :<Grid item xs={10}><Typography align="center" variant="h5" component="h3">
+                Proximamente
+                </Typography></Grid>}
             </Grid>
         )
     }

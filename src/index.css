@@ -87,7 +87,7 @@ code {
 
 ::cue {
   background: none;
-  
+  color: #f3f728;
   overflow: visible !important;
   -webkit-transform: translateY(20%) !important;
   transform: translateY(20%) !important;

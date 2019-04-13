@@ -1,34 +1,71 @@
 import React, { Component } from 'react';
 import url from '../../constantes'
-import axios from 'axios'
-import { Player,LoadingSpinner, BigPlayButton,ControlBar } from 'video-react';
-import { Grid,Typography } from '@material-ui/core';
+import ReactPlayer from 'react-player'
+import { Grid,Typography,  Avatar,List, ListItem,ListItemText,TextField } from '@material-ui/core';
+import Snack from '../snackbar/'
+import ButtonSpinner from '../buttonspinner/'
 class Single extends Component {
     constructor(){
         super()
         this.state={
             data:{},
             season:{},
-            serie:{}
+            serie:{},
+            comments:[],
+            comment:'',
+            message:'',
+            toast:false,
+            page:1,
+            loading:false,
+            next:false
         }
     }
-    componentDidMount(){
-        console.log(this.props.params.serie)
-        axios.get(`${url.base}watch/ju0fmk3nr6plczQHBYWg`,{
-            headers:{
-                'Content-Type': 'application/json',
-                'X-Requested-With':'XMLHttpRequest'   
-            }})
-            .then(data=>{
-                this.setState({
-                    data:data.data,
-                    serie:data.data.season.serie,
-                    season:data.data.season
-                })
-                console.log(data.data)
-            })
+    componentWillMount(){
+        this.getEpisode()
     }
+    componentDidMount(){
+        this.getComments()
+    }
+    getComments=async()=>{
+        this.setState({loading:true})
+        const peticion=await fetch(`${url.base}comments/${this.props.params.serie}?page=${this.state.page}`)
+        const resp=await peticion.json()
+        const array=this.state.comments
 
+        resp.data.forEach(item=>{
+            array.push(item)
+        })
+        this.setState({comments:array,loading:false})
+        if(resp.next_page_url){
+            this.setState({page:this.state.page+1,next:true})
+        }else{
+            this.setState({next:false})
+        }
+    }
+    addComment=async()=>{
+        const peticion=await fetch(`${url.base}comment/${this.props.params.serie}`,{
+            method:'POST',
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+                'Content-Type':'application/x-www-form-urlencoded'
+            },
+            body:`content=${this.state.comment}`
+        })
+        if(peticion.status===201){
+            const resp=await peticion.json()
+            this.setState({comment:'',toast:true,message:resp.message})
+        }
+    }
+    getEpisode=async()=>{
+        const req=await fetch(`${url.base}watch/${this.props.params.serie}`)
+        const resp=await req.json()
+        this.setState({data:resp,season:resp.season,serie:resp.season.serie})
+    }
+    onChange=(e)=>{
+        const target=e.target
+        const name=target.name
+        this.setState({[name]:target.value})
+    }
     play=()=> {
         this.refs.player.play();
     }
@@ -39,67 +76,101 @@ class Single extends Component {
     isPause=()=>{
         return this.state.pause
     }
-  render() {
-       const track=<track  src="/subtitle/sub.vtt" kind="subtitles" label="English" default/>
-      
-    return (
-    
-        <Grid
-        container
-        direction="row"
-        className='mt'
-        justify="center"
-        spacing={24}
-        xs={12}
-    >
-    <Grid item xs={12} md={10}>
-        <Typography align="center" variant="h5" component="h3">
-            {this.state.serie.title} Season 5 Episode 10
-        </Typography>
-    </Grid>
-        <Grid item
-            xs={12}
-            md={10}
-            container
-        >
-      <Player
-          ref="player" 
-          poster={this.state.season.banner} 
-      >
-        <source src='http://localhost:8000/storage/videos/3f56o5KRcJ2qavGrtOCICBnjwFTiSl3cGQLINwYr.mp4'/>
-        
-        
-        <BigPlayButton position="center" />
-        <LoadingSpinner />
-        <ControlBar autoHide={true} />
-      </Player>
-      
-      </Grid>
-      <Grid xs={10} spacing={8} item container>
-      
+    render() {
+
+      const {data,serie,season}=this.state
+      let comments=this.state.comments.map(comment=>{
+          return(
+            <ListItem key={comment.id}>
+                <Avatar alt="Profile Picture" src={comment.user.avatar} />
+                <ListItemText primary={comment.user.user_name} secondary={comment.content} />
+            </ListItem>
+          )
+      })
+      return (
+          <Grid container direction="row" className='mt' justify="center">
+            <Snack message={this.state.message} open={this.state.toast} close={()=>this.setState({toast:false})}/>
+            <Grid xs={10} spacing={24} container item justify="center">
+                <Grid item xs={12}>
+                    <Typography align="center" variant="h5" component="h3">
+                        {serie.title} Season {season.number_season} Episode {data.number_episode}
+                    </Typography>
+                </Grid>
+                <Grid item xs={12} md={10} container>
+                    <ReactPlayer
+                      playing
+                      controls
+                      width='100%'
+                      height='auto'
+                      url={data.video}
+                      light={season.banner}
+                      config={{ file: {
+                          //attributes: {crossorigin:"anonymous"},
+                          tracks: [
+                          {kind: 'subtitles', src: 'http://localhost:3000/subtitle/F9dzNnsyem0xQMGocAgwOnynuYtDjGzhp3GhAizQ.vtt', srcLang: 'en', default: true},
+                          ]
+                      }}}
+                    />
+                    {/*<video width="1200" height="720" controls crossorigin="anonymous">
+                          <source src='http://127.0.0.1:8000/storage/videos/Qw3TuFvMtGUg7uBsAaodiwsWVEAblQxXQoEVXdx4.mp4'/>
+                          <track   src="http://127.0.0.1:8000/storage/subtitles/F9dzNnsyem0xQMGocAgwOnynuYtDjGzhp3GhAizQ.vtt" kind="subtitles" label="English" default/>
+                      </video>*/}
+                </Grid>
+                <Grid md={10} xs={12} spacing={8} item container>
                     <Grid item xs={12}>
                         <Typography  variant="h5" component="h3">
-                            Title
+                            {data.title}
                         </Typography>
                     </Grid>
                     <Grid item xs={12}>
                         <Typography variant="h5" component="h3">
-                            IMBD Rating 9.5
+                            IMBD Rating {data.imdbRating}
                         </Typography>
                     </Grid>
                     <Grid item xs={12}>
                         <Typography component="p">
-                            Season 1 of Game of Thrones consists of ten episodes, including a re-shot version of the pilot episode originally filmed in October 2009 and November 2009, and was otherwise filmed between July 23, 2010 and December 18, 2010. Season 1 had a budget of $60 million. Season 1 of Game of Thrones was released on DVD and Blu-ray in the United States and United Kingdom on March 5, 2012, setting new sales records for first-week sales of a HBO series. On September 2, 2012, the first season of Game of Thrones won a Hugo Award for Best Dramatic Presentation.[1] David Benioff and D.B. Weiss were the executive producers and show runners.
-                            The season premiered on April 17, 2011. 
+                            {data.plot}
                         </Typography>
                     </Grid>
-                        
-                        
-                    
-      </Grid>
-      </Grid>
-    );
-  }
+                </Grid>
+                    <Grid md={10} xs={12} spacing={8} item container>
+                        <TextField
+                            id="standard-full-width"
+                            label="Agrega Un Comentario"
+                            style={{ margin: 8 }}
+                            placeholder="Comentario"
+                            fullWidth
+                            margin="normal"
+                            name='comment'
+                            onChange={this.onChange}
+                            value={this.state.comment}
+                            onKeyDown={(e=>{if(e.key==='Enter'){this.addComment()}})}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                        />
+                    </Grid>
+                    <Grid md={10} xs={12} spacing={8} item container>
+                        <List>
+                            {comments}
+                        </List>
+                    </Grid> 
+                    <Grid
+                    xs={12}
+                    md={4}
+                    spacing={24} 
+                    container
+                    item
+                    justify="center"
+                    >
+                    {this.state.next?
+                        <ButtonSpinner loading={this.state.loading} action={this.getComments}  text='Cargar Mas'/>:
+                        null}
+                    </Grid>        
+              </Grid>
+        </Grid>
+      );
+    }
 }
 
 export default Single;

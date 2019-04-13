@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import { Grid, Card, CardContent,Typography} from '@material-ui/core';
+import { Grid, Card, CardContent,Typography,} from '@material-ui/core';
 import url from '../../constantes'
 import PropTypes from "prop-types"
 import { withStyles } from "@material-ui/core/styles"
@@ -11,28 +11,28 @@ const styles = {
         textDecoration:'none'
     }
 }
-class Home extends Component{
+class Episodes extends Component{
     constructor(){
         super()
         this.state={
-            series:[],
+            episodes:[],
             page:1,
             next:true
         }
     }
     componentDidMount(){
-       this.getSeries()
+       this.getEpisodes()
     }
-    getSeries=async()=>{
+    getEpisodes=async()=>{
         this.setState({loading:true})
-        const req=await fetch(`${url.base}series?page=${this.state.page}`)
+        const req=await fetch(`${url.base}episodes?page=${this.state.page}`)
         const resp =await req.json()
-        const array=this.state.series
+        const array=this.state.episodes
 
         resp.data.forEach(item=>{
             array.push(item)
         })
-        this.setState({series:array,loading:false})
+        this.setState({episodes:array,loading:false})
         if(resp.next_page_url){
             this.setState({page:this.state.page+1,next:true})
         }else{
@@ -41,15 +41,18 @@ class Home extends Component{
     }
     render(){
         const { classes } = this.props;
-        let items=this.state.series.map(serie=>{
+        let items=this.state.episodes.map(episode=>{
+            const season=episode.season
+            const serie=season.serie
             return(
-                <Grid key={serie.id} item xs={12}  xl={2} sm={3}>
-                    <Card className={classes.text} component={Link} to={`/title/${serie.id}`}> 
+                <Grid key={episode.id} item xs={12}  xl={2} sm={3}>
+                    <Card className={classes.text} component={Link} to={`/watch/${episode.id}`}> 
                         
                         <CardContent>
-                        <img className="poster" src={serie.poster} alt=""/>
+                        <img className="poster" src={season.poster} alt=""/>
                         <Typography align="center" variant="h6" >
-                            {serie.title}
+                            {serie.title} S{season.number_season}E{episode.number_episode} {episode.title}
+                            
                         </Typography>
                         </CardContent>
                     </Card>
@@ -80,7 +83,7 @@ class Home extends Component{
                     justify="center"
                 >
                 {this.state.next?
-                <ButtonSpinner loading={this.state.loading} action={this.getSeries}  text='Cargar Mas'/>:
+                <ButtonSpinner loading={this.state.loading} action={this.getEpisodes}  text='Cargar Mas'/>:
                 null}
                 </Grid>
             </Grid>
@@ -89,9 +92,9 @@ class Home extends Component{
     }
 }
 
-Home.propTypes = {
+Episodes.propTypes = {
     classes: PropTypes.object.isRequired
 };
   
-export default withStyles(styles)(Home);
+export default withStyles(styles)(Episodes);
   
